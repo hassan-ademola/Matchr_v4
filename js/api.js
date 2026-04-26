@@ -145,6 +145,16 @@ async function reactivateJob(jobId) {
   await db.collection('jobs').doc(jobId).update({ status: 'active' });
 }
 
+async function updateJob(jobId, jobData) {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Not authenticated');
+  await db.collection('jobs').doc(jobId).update({
+    ...jobData,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+  });
+  return { id: jobId, ...jobData };
+}
+
 
 /* ═══════════════════════════════════════════════════════════════════════
    APPLICATIONS

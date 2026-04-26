@@ -259,7 +259,7 @@
       </div>
       <div class="nav-right">
         <button class="nav-link active" onclick="navigate('recruiter-dashboard')">Dashboard</button>
-        <button class="btn btn--primary btn--sm" onclick="navigate('recruiter-create')">+ New Job</button>
+        <button class="btn btn--primary btn--sm" onclick="state.editingJobId=null;navigate('recruiter-create')">+ New Job</button>
         <span class="badge badge--accent">◈ Recruiter</span>
       </div>
     </nav>
@@ -293,7 +293,7 @@
     </nav>
     <div class="content">
       <div class="container--narrow">
-        <h2 class="heading-md mb-6">Create Job Post</h2>
+        <h2 class="heading-md mb-6" id="create-heading">Create Job Post</h2>
         <p class="text-sm mb-32">Define the role — candidates will be matched automatically</p>
         <div class="card card--padded">
           <div class="flex-col">
@@ -327,7 +327,7 @@
         </div>
         <div class="flex-end">
           <button class="btn btn--secondary" onclick="navigate('recruiter-dashboard')">Cancel</button>
-          <button class="btn btn--primary" onclick="createJob()">Publish Job →</button>
+          <button class="btn btn--primary" id="create-submit-btn" onclick="createJob()">Publish Job →</button>
         </div>
       </div>
     </div>

@@ -7,7 +7,7 @@ const state = {
   skills: [], nerData: null, candidateProfile: null,
   shortlisted: new Set(), selectedJobId: null, selectedCandidateId: null,
   candidates: [], jobs: [], allJobs: [],
-  authMode: 'login', selectedRole: 'candidate', jobTab: 'active',
+  authMode: 'login', selectedRole: 'candidate', jobTab: 'active', editingJobId: null,
 };
 
 
@@ -132,6 +132,7 @@ function navigate(pageId) {
     'candidate-apply': renderApplyPage,
     'candidate-done': () => {},
     'recruiter-dashboard': renderRecruiterDashboard,
+    'recruiter-create': setupCreateForm,
     'recruiter-job': renderRecruiterJob,
     'recruiter-candidate': renderCandidateDetail,
   };
@@ -505,7 +506,7 @@ function switchJobTab(tab) {
         </div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
-        ${tab === 'active' ? `<button class="btn--danger" onclick="event.stopPropagation();archiveJobAction('${j.id}')">Archive</button>` : `<button class="btn--ghost" onclick="event.stopPropagation();reactivateJobAction('${j.id}')">Reactivate</button>`}
+        ${tab === 'active' ? `<button class="btn--ghost" onclick="event.stopPropagation();editJob('${j.id}')">Edit</button><button class="btn--danger" onclick="event.stopPropagation();archiveJobAction('${j.id}')">Archive</button>` : `<button class="btn--ghost" onclick="event.stopPropagation();reactivateJobAction('${j.id}')">Reactivate</button>`}
         <div class="job-card__arrow" onclick="openRecruiterJob('${j.id}')" style="cursor:pointer">View →</div>
       </div>
     </div>
@@ -517,24 +518,66 @@ async function reactivateJobAction(jobId) { await reactivateJob(jobId); renderRe
 
 
 /* ═══════════════════════════════════════════════════════════════════════
-   RECRUITER — CREATE JOB
+   RECRUITER — CREATE / EDIT JOB
    ═══════════════════════════════════════════════════════════════════════ */
+function editJob(jobId) {
+  state.editingJobId = jobId;
+  navigate('recruiter-create');
+}
+
+function setupCreateForm() {
+  const heading = document.getElementById('create-heading');
+  const submitBtn = document.getElementById('create-submit-btn');
+  const fields = ['new-title','new-dept','new-desc','new-location','new-salary','new-skills','new-exp'];
+
+  if (state.editingJobId) {
+    // Edit mode: pre-fill form with existing job data
+    const job = state.jobs.find(j => j.id === state.editingJobId);
+    if (job) {
+      if (heading) heading.textContent = 'Edit Job Post';
+      if (submitBtn) submitBtn.textContent = 'Save Changes →';
+      document.getElementById('new-title').value = job.title || '';
+      document.getElementById('new-dept').value = job.department || '';
+      document.getElementById('new-desc').value = job.description || '';
+      document.getElementById('new-location').value = job.location || '';
+      document.getElementById('new-salary').value = job.salary || '';
+      document.getElementById('new-skills').value = (job.skills || []).join(', ');
+      document.getElementById('new-exp').value = job.experienceMin || '';
+      const typeEl = document.getElementById('new-type');
+      if (typeEl && job.jobType) typeEl.value = job.jobType;
+    }
+  } else {
+    // Create mode: clear form
+    if (heading) heading.textContent = 'Create Job Post';
+    if (submitBtn) submitBtn.textContent = 'Publish Job →';
+    fields.forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+  }
+}
+
 async function createJob() {
   const title = document.getElementById('new-title').value.trim();
   if (!title) { document.getElementById('new-title').style.borderColor = 'var(--red-ring)'; return; }
+
+  const jobData = {
+    title, department: document.getElementById('new-dept').value.trim() || '',
+    description: document.getElementById('new-desc').value.trim(),
+    location: document.getElementById('new-location').value.trim(),
+    jobType: document.getElementById('new-type').value,
+    salary: document.getElementById('new-salary').value.trim(),
+    skills: document.getElementById('new-skills').value.split(',').map(s => s.trim()).filter(Boolean),
+    experienceMin: parseInt(document.getElementById('new-exp').value) || 0,
+  };
+
   try {
-    await createJobPost({
-      title, department: document.getElementById('new-dept').value.trim() || '',
-      description: document.getElementById('new-desc').value.trim(),
-      location: document.getElementById('new-location').value.trim(),
-      jobType: document.getElementById('new-type').value,
-      salary: document.getElementById('new-salary').value.trim(),
-      skills: document.getElementById('new-skills').value.split(',').map(s => s.trim()).filter(Boolean),
-      experienceMin: parseInt(document.getElementById('new-exp').value) || 0,
-    });
+    if (state.editingJobId) {
+      await updateJob(state.editingJobId, jobData);
+      state.editingJobId = null;
+    } else {
+      await createJobPost(jobData);
+    }
     ['new-title','new-dept','new-desc','new-location','new-salary','new-skills','new-exp'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
     navigate('recruiter-dashboard');
-  } catch (err) { alert('Error creating job.'); console.error(err); }
+  } catch (err) { alert('Error saving job.'); console.error(err); }
 }
 
 
